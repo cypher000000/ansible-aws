@@ -1,0 +1,9 @@
+- name: Configure Production Server
+  hosts: "{{ ec2_instance_name_prod }}"
+  gather_facts: false
+  become: true
+  roles:
+    - deploy
+  vars_files:
+    - "../host_vars/all.yml"
+    - "../host_vars/custom_date_time.yml"
