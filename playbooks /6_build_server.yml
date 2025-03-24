@@ -1,9 +1,0 @@
-- name: Configure Build Server
-  hosts: "{{ ec2_instance_name_build }}"
-  gather_facts: false
-  become: true
-  roles:
-    - build
-  vars_files:
-    - "../host_vars/all.yml"
-    - "../host_vars/custom_date_time.yml"
