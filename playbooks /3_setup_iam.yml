@@ -1,0 +1,116 @@
+---
+- name: Setup IAM Role and Policy for EC2 Access to S3
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - "../host_vars/all.yml"
+    - "../host_vars/custom_date_time.yml"
+  tasks:
+    - name: Create or update IAM Policy for S3 Access
+      amazon.aws.iam_managed_policy:
+        policy_name: "{{ iam_policy_name }}"
+        region: "{{ aws_region }}"
+        state: present
+        policy_description: "ansible-aws -- S3 Access (GET/PUT/LIST)"
+        policy: "{{ lookup('template','../files/IAM_policy.json.j2') }}"
+      register: s3_access_policy
+      
+    - name: Determine IAM Policy status
+      set_fact:
+        policy_status: >-
+          {%- if s3_access_policy.policy.create_date | to_datetime('%Y-%m-%dT%H:%M:%S%z') > (custom_date_time_iso | to_datetime('%Y-%m-%dT%H:%M:%S%z')) -%}
+            created
+          {%- elif (s3_access_policy.policy.create_date | to_datetime('%Y-%m-%dT%H:%M:%S%z') < (custom_date_time_iso | to_datetime('%Y-%m-%dT%H:%M:%S%z'))) 
+          and (s3_access_policy.policy.update_date | to_datetime('%Y-%m-%dT%H:%M:%S%z') > (custom_date_time_iso | to_datetime('%Y-%m-%dT%H:%M:%S%z'))) -%}
+            updated
+          {%- else -%}
+            unchanged
+          {%- endif -%}
+    - name: Notify IAM Policy status
+      debug:
+        msg: >-
+          {%- if policy_status == 'created' -%}
+            The IAM policy '{{ iam_policy_name }}' was created.
+          {%- elif policy_status == 'updated' -%}
+            The IAM policy '{{ iam_policy_name }}' was updated.
+          {%- else -%}
+            The IAM policy '{{ iam_policy_name }}' already exists and no updates were needed.
+          {%- endif -%}
+      when: "'iam_setup' in ansible_run_tags and 'msg' in ansible_run_tags"
+      tags:
+        - msg
+        - never
+    - name: Log IAM Policy status to a file
+      lineinfile:
+        path: "{{ log_file_path }}"
+        line: >-
+          {%- if policy_status == 'created' -%}
+            {{ custom_date_time }}:The IAM policy '{{ iam_policy_name }}' was created.
+          {%- elif policy_status == 'updated' -%}
+            {{ custom_date_time }}:The IAM policy '{{ iam_policy_name }}' was updated.
+          {%- else -%}
+            {{ custom_date_time }}:The IAM policy '{{ iam_policy_name }}' already exists and no updates were needed.
+          {%- endif -%}
+        insertafter: "EOF"
+      when: "'iam_setup' in ansible_run_tags and 'log' in ansible_run_tags"
+      tags:
+        - log
+        - never
+        
+    - name: Check if IAM role exists
+      amazon.aws.iam_role_info:
+        name: "{{ iam_role_name }}"
+        region: "{{ aws_region }}"
+      register: iam_role_info
+      ignore_errors: true
+    - name: Create or update IAM Role for EC2 with S3 Access
+      amazon.aws.iam_role:
+        name: "{{ iam_role_name }}"
+        region: "{{ aws_region }}"
+        state: present
+        assume_role_policy_document: "{{ lookup('file','../files/IAM_role.json') }}"
+        description: "ansible-aws -- Role for EC2 with S3 Access (GET/PUT/LIST)"
+        managed_policies:
+          - "{{ s3_access_policy.policy.arn }}"
+      register: iam_role_set_info
+
+    - name: Determine IAM role status
+      set_fact:
+        role_status: >-
+          {%- if iam_role_info.iam_roles is undefined or iam_role_info.iam_roles | length == 0 -%}
+            created
+          {%- elif iam_role_set_info.changed -%}
+            updated
+          {%- else -%}
+            unchanged
+          {%- endif -%}
+    - name: Notify IAM Role status
+      debug:
+        msg: >-
+          {%- if role_status == 'created' -%}
+            The IAM role '{{ iam_role_name }}' was created.
+          {%- elif role_status == 'updated' -%}
+            The IAM role '{{ iam_role_name }}' was updated.
+          {%- else -%}
+            The IAM role '{{ iam_role_name }}' already exists and no updates were needed.
+          {%- endif -%}
+      when: "'iam_setup' in ansible_run_tags and 'msg' in ansible_run_tags"
+      tags:
+        - msg
+        - never
+    - name: Log IAM Role status to a file
+      lineinfile:
+        path: "{{ log_file_path }}"
+        line: >-
+          {%- if role_status == 'created' -%}
+            {{ custom_date_time }}:The IAM role '{{ iam_role_name }}' was created.
+          {%- elif role_status == 'updated' -%}
+            {{ custom_date_time }}:The IAM role '{{ iam_role_name }}' was updated.
+          {%- else -%}
+            {{ custom_date_time }}:The IAM role '{{ iam_role_name }}' already exists and no updates were needed.
+          {%- endif -%}
+        insertafter: "EOF"
+      when: "'iam_setup' in ansible_run_tags and 'log' in ansible_run_tags"
+      tags:
+        - log
+        - never
