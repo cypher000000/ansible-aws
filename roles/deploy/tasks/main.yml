@@ -1,0 +1,65 @@
+- name: Replace region in Ubuntu archive URL in sources.list using replace
+  replace:
+    path: /etc/apt/sources.list
+    regexp: 'https://[a-z0-9-]+(?=\.ec2\.archive\.ubuntu\.com/ubuntu/)'
+    replace: "https://{{ aws_region }}"
+- name: Install required system packages
+  apt:
+    pkg:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - python3-pip
+      - virtualenv
+      - python3-setuptools
+      - awscli
+    state: latest
+    update_cache: true
+- name: Install boto3 and botocore
+  pip:
+    name: 
+      - boto3>=1.26.0
+      - botocore>=1.29.0
+    state: present
+- name: Add docker APT repository (Ubuntu 22_04)
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: [ deb ]
+    uris: "https://download.docker.com/linux/ubuntu" 
+    signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+    suites: ["jammy"]
+    components: [stable]
+    state: present
+    enabled: yes
+- name: Update apt and install docker-ce
+  apt:
+    name: docker-ce
+    state: latest
+    update_cache: true
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+- name: Ensure Docker is started
+  service:
+    name: docker
+    state: started
+    enabled: true
+- name: Download WAR file from S3
+  amazon.aws.s3_object:
+    bucket: "{{ s3_bucket }}"
+    object: '/artifacts/demo_{{ custom_date_time }}.war'
+    dest: /tmp/demo.war
+    mode: get
+    region: "{{ aws_region }}"
+- name: Run Tomcat container with the built artifact
+  community.docker.docker_container:
+    name: tomcat_server
+    image: tomcat:9.0.91-jdk8-temurin
+    state: started
+    recreate: true
+    ports:
+      - 80:8080
+    volumes:
+      - /tmp/demo.war:/usr/local/tomcat/webapps/demo.war
+    restart_policy: always
