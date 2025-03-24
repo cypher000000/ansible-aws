@@ -1,0 +1,93 @@
+- name: Replace region in Ubuntu archive URL in sources.list using replace
+  replace:
+    path: /etc/apt/sources.list
+    regexp: 'https://[a-z0-9-]+(?=\.ec2\.archive\.ubuntu\.com/ubuntu/)'
+    replace: "https://{{ aws_region }}"
+- name: Install required system packages
+  apt:
+    pkg:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - python3-pip
+      - virtualenv
+      - python3-setuptools
+      - awscli
+    state: latest
+    update_cache: true
+- name: Install boto3 and botocore
+  pip:
+    name: 
+      - boto3>=1.26.0
+      - botocore>=1.29.0
+    state: present
+- name: Add docker APT repository (Ubuntu 22_04)
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: [ deb ]
+    uris: "https://download.docker.com/linux/ubuntu" 
+    signed_by: "https://download.docker.com/linux/ubuntu/gpg"
+    suites: ["jammy"]
+    components: [stable]
+    state: present
+    enabled: yes
+- name: Update apt and install docker-ce
+  apt:
+    name: docker-ce
+    state: latest
+    update_cache: true
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+- name: Ensure Docker is started
+  service:
+    name: docker
+    state: started
+    enabled: true
+- name: Ensure /tmp/maven_build directory exists on build_host
+  file:
+    path: /tmp/maven_build
+    state: directory
+    mode: "0755"
+- name: Copy Dockerfile and context to build server
+  copy:
+    src: files/Dockerfile
+    dest: /tmp/Dockerfile
+    force: yes
+- name: Build Docker image
+  community.docker.docker_image:
+    name: maven_build
+    tag: "{{ custom_date_time }}"
+    build:
+      path: /tmp/
+      dockerfile: Dockerfile
+    source: build
+    state: present
+- name: Run Maven build
+  community.docker.docker_container:
+    name: maven_build_container
+    image: "maven_build:{{ custom_date_time }}"
+    state: started
+    recreate: true
+    volumes:
+      - /tmp/maven_build:/tmp/maven/target
+    working_dir: /tmp/maven
+    command: mvn package
+- name: Check container state
+  community.docker.docker_container_info:
+    name: maven_build_container
+  until: container_info.container.State.Status == 'exited'
+  register: container_info
+  retries: 15
+  delay: 10
+- name: Rename WAR file with timestamp
+  command: "mv /tmp/maven_build/demo.war /tmp/maven_build/demo_{{ custom_date_time }}.war"
+- name: Upload WAR file to S3
+  amazon.aws.s3_object:
+    bucket: "{{ s3_bucket }}"
+    object: 'artifacts/demo_{{ custom_date_time }}.war'
+    src: '/tmp/maven_build/demo_{{ custom_date_time }}.war'
+    mode: put
+    permission: []
+    region: "{{ aws_region }}"
