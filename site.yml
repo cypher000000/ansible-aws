@@ -1,0 +1,175 @@
+---
+# Master playbook to manage workflow by importing modular playbooks
+
+# 0 - Initialize custom date and time to use it in log and artifact name
+- name: Initialize custom date and time
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Set date and time fact
+      set_fact:
+        custom_date_time: "{{ lookup('pipe', 'date +%Y%m%d_%H%M%S') }}"
+      tags:
+        - always
+    - name: Set date and time fact in iso
+      set_fact:
+        custom_date_time_iso: "{{ lookup('pipe', 'date -Is') }}"
+      tags:
+        - always
+    - name: Save custom date and time to file
+      copy:
+        content: "custom_date_time: {{ custom_date_time }}"
+        dest: "./host_vars/custom_date_time.yml"
+      tags:
+        - always
+        
+# 0 - Start log in file
+- name: Log start in a file
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - "./host_vars/all.yml"
+    - "./host_vars/custom_date_time.yml"
+  tasks:
+    - name: Log start in a file
+      lineinfile:
+        path: "{{ log_file_path }}"
+        line: "Starting playbook {{ custom_date_time }}."
+        create: true
+      tags:
+        - log
+        - never
+
+# 1 - Check AWS Free Tier usage for EC2, EBS, S3, Data Transfer, Elastic IP, and KMS
+- import_playbook: playbooks/1_check_free_tier_aws.yml
+  tags:
+    - free_tier_check
+    - never
+
+# 2 - Create S3 bucket "s3_bucket" and dirs "info_ec2" and "artifacts" inside 
+- import_playbook: playbooks/2_setup_s3.yml
+  tags:
+    - s3_setup
+    - never
+    
+# 3 - Create AWS IAM policy "iam_policy_name" and role "iam_role_name" with access from EC2 to S3 bucket "s3_bucket"
+- import_playbook: playbooks/3_setup_iam.yml
+  tags:
+    - iam_setup
+    - never
+    
+# 4 - Create EC2 Key Pair "aws_key_name" for Ansible Access and store it at "aws_ssh_private_key_file" by "create_key" tag 
+# or upload existing key to AWS by "key_management" tag
+- import_playbook: playbooks/4_aws_key_management.yml
+  tags:
+    - key_management
+    - never
+    
+# 5 - Create and Configure 2 Dynamic Security Group (only 1 IP address and ports 22/80 for public) 
+# and Create and Configure 2 EC2 Instances (build-server and prod-server) with type "instance_type" and "image_id", role "iam_role_name" and VPC "vpc_id", 
+# and add them to in-memory dynamic Ansible inventory. 
+- import_playbook: playbooks/5_setup_ec2_instances.yml
+  tags:
+    - ec2_instances
+    - never
+
+# 6.0 - Log building artifact stage in file
+- name: Log building in a file
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - "./host_vars/all.yml"
+    - "./host_vars/custom_date_time.yml"
+  tasks:
+    - name: Log build in a file
+      lineinfile:
+        path: "{{ log_file_path }}"
+        line: "{{ custom_date_time }}: Building artifact inside build EC2 instance '{{ ec2_instance_name_build }}' with public IP {{ public_ip_build | trim}}.."
+        insertafter: "EOF"
+      when: "'build_server' in ansible_run_tags and 'log' in ansible_run_tags"
+      tags:
+        - log
+        - build_server
+        - never
+        
+# 6 - Configure Build Server by "build" Ansible role - install docker, build and run docker image to build maven artifact, upload WAR artifact to S3 "s3_bucket"
+- import_playbook: playbooks/6_build_server.yml
+  tags:
+    - build_server
+    - never
+
+# 7.0 - Log building artifact stage in file
+- name: Log production in a file
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - "./host_vars/all.yml"
+    - "./host_vars/custom_date_time.yml"
+  tasks:
+    - name: Log production in a file
+      lineinfile:
+        path: "{{ log_file_path }}"
+        line: "{{ custom_date_time }}: Building artifact inside prod EC2 instance '{{ ec2_instance_name_prod }}' with public IP {{ public_ip_prod | trim}}.."
+        insertafter: "EOF"
+      when: "'prod_server' in ansible_run_tags and 'log' in ansible_run_tags"
+      tags:
+        - log
+        - prod_server
+        - never
+        
+# 7 - Configure Prod Server by "deploy" Ansible role -- install docker, download WAR artifact from S3 "s3_bucket", build and run docker image with the built artifact from S3
+- import_playbook: playbooks/7_production_server.yml
+  tags:
+    - prod_server
+    - never
+
+# Mesage about application URL
+- name: Output application access URL
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - "./host_vars/all.yml"
+    - "./host_vars/custom_date_time.yml"
+  tasks:
+    - name: Pause play until a URL is reachable from this host
+      ansible.builtin.uri:
+        url: "http://{{ public_ip_prod | trim }}:80/demo/Hello"
+#        follow_redirects: none
+        method: GET
+        return_content: no
+      register: result
+      until: result.status == 200
+      retries: 12 # 12 * 5 seconds = 1min
+      delay: 5 # Every 5 seconds
+    - name: Display application URL
+      debug:
+        msg: "The application should be available at http://{{ public_ip_prod | trim }}:80/demo/Hello"
+    - name: Log in file for dynamic inventory addition (build)
+      lineinfile:
+        path: "{{ log_file_path }}"
+        line: "{{ custom_date_time }}:The application should be available at http://{{ public_ip_prod | trim }}:80/demo/Hello"
+        insertafter: "EOF"
+      when: "'prod_server' in ansible_run_tags and 'log' in ansible_run_tags"
+      tags:
+        - log
+        - never
+  tags:
+    - prod_server
+    - never
+          
+# End log in file
+- name: Log end in a file
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - "./host_vars/all.yml"
+    - "./host_vars/custom_date_time.yml"
+  tasks:
+    - name: Log end in a file
+      lineinfile:
+        path: "{{ log_file_path }}"
+        line: "Ending of playbook {{ custom_date_time }}."
+        insertafter: "EOF"
+      tags:
+        - log
+        - never
