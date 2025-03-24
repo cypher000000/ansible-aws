@@ -1,0 +1,17 @@
+log_file_path: "/tmp/ansible_logs/log.txt"
+aws_region: "us-east-1"  # AWS region
+aws_key_name: "test-aws-ansible-key-1"  # AWS key pair name
+instance_type: "t3.micro"  # AWS EC2 instance type
+image_id: "ami-0e1bed4f06a3b463d"  # actual AWS AMI ID (check region!)
+vpc_id: "vpc-0e1bed4f06a3b463d"  # AWS VPC ID
+subnet_id: "subnet-0e1bed4f06a3b463d" # AWS VPC Subnet ID
+s3_bucket: "test_bucket_art"  # AWS S3 bucket address (uniq!)
+aws_ssh_private_key_file: "~/.ssh/{{ aws_key_name }}.pem"  # path to aws_key_name.pem on host
+iam_policy_name: "S3AccessPolicy" # Name of AWS IAM policy with access from EC2 to S3 (new)
+iam_role_name: "test_ec2_s3" # Name of AWS IAM role  with access from EC2 to S3 (created or new)
+ec2_security_group_build: "test-build-sg-01" # AWS EC2 security group (build server)
+ec2_security_group_prod: "test-prod-sg-01" # AWS EC2 security group (prod server)
+ec2_instance_name_build: "test-ec2-build" # AWS EC2 instance (build)
+ec2_instance_name_prod: "test-ec2-prod" # AWS EC2 instance (prod)
+ec2_instance_env_build: "test-build-servers" # AWS EC2 instance environment (build)
+ec2_instance_env_prod: "test-prod-servers" # AWS EC2 instance environment (prod)
