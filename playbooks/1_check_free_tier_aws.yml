@@ -97,14 +97,11 @@
         - never
 
     - name: Log exceeded Free Tier limits to a logfile
-      blockinfile:
+      lineinfile:
         path: "{{ log_file_path }}"
-        block: |
-          {{ custom_date_time }}:The following Free Tier limits have been exceeded or are at risk of exceedance:
+        line: >-
           {%- for usage in exceeded_usages -%}
-          - {{ custom_date_time }}:Service: {{ usage.service }}, UsageType: {{ usage.usageType }},
-            Actual Usage: {{ usage.actual }}, Forecasted Usage: {{ usage.forecasted }},
-            Limit: {{ usage.limit }}
+            {{ custom_date_time }}:The following Free Tier limits have been exceeded or are at risk of exceedance: Service: {{ usage.service }}, UsageType: {{ usage.usageType }}, Actual Usage: {{ usage.actual }}, Forecasted Usage: {{ usage.forecasted }}, Limit: {{ usage.limit }}.
           {%- endfor -%}
         insertafter: "EOF"
       when: "('free_tier_check' in ansible_run_tags and 'log' in ansible_run_tags) and (exceeded_usages | length > 0)"
