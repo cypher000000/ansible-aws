@@ -23,21 +23,18 @@ Create an Ansible playbook that check AWS free tier, create S3 bucket, setup iam
 
 - Ansible 2.17.4
 - Git 2.34.1
-- AWS CLI 
+- AWS CLI 2.18.0
 - all installed on Ubuntu 22.04
   
 ## How to make this work
 
-1. On your VM/PC/EC2/etc:
+On your VM/PC/EC2/etc:
 
-- Register on AWS and create an account (if you doesnt have any). Make sure that it has all permissions to create ec2 instance/security groups/IAM/upload ssh key and work with s3
+- Register on AWS and create an account (if you doesnt have any). Make sure that it has all permissions to create ec2 instance/security groups/IAM/upload ssh key and work with S3
 - Setup Ansible and AWS CLI, login in your AWS account
-- Create ssh key for ansible user (aws-key-1.pem + aws-key-1.pem.pub). also How to generate ssh-key code below.
 
-2. Fork (or clone) this github repo, then:
-- Specify all your variables in 'host_vars/all.yml'
-
-0. How to generate ssh-key:
+- (Optional) If you want, you can create ssh key for ansible user (aws-key-1.pem + aws-key-1.pem.pub) and then upload it in AWS. also How to generate ssh-key code below.
+ How to generate ssh-key:
 ``` bash
 ssh-keygen -t rsa -b 2048 -f ~/.ssh/test-aws-ansible-key-1.pem
 chmod 400 ~/.ssh/test-aws-ansible-key-1.pem
@@ -48,11 +45,31 @@ Everything triggered by tags, so use them
 
 1. Clone repo:
 ``` bash
-git clone https://github.com/cypher000000/ansible-aws.git
+git clone https://github.com/cypher000000/ansible-aws.git 
 ```
-
-3. use tags
-
-
+- Specify all your variables in 'host_vars/all.yml'
+2. Start playbook, using tags, TLDR:
+``` bash
+ansible-playbook -i "localhost," --connection=local site.yml --tags "log,s3_setup,iam_setup,key_management,create_key,ec2_instances,build_server,prod_server"
+```
+or you can select your tags:
+``` bash
+ansible-playbook -i "localhost," --connection=local site.yml --tags "tag,tag,tag"
+```
+- All tags:
+  - "log"
+    - 1
+  - "msg"
+    - 2
+  - "free_tier_check"
+    - 3
+  - "s3_setup"
+    - 4
+  - "iam_setup"
+    - 5
+  - "key_management,upload_key" or "key_management,create_key"
+    - 6
+  - "ec2_instances,build_server,prod_server"
+    - 7
 ## Credits for demo artifact app
 @tongueroo for https://github.com/tongueroo/demo-java
