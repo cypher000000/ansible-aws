@@ -318,7 +318,7 @@
         ansible_user: ubuntu
         ansible_private_key_file: "{{ aws_ssh_private_key_file }}"
         groups: "{{ ec2_instance_env_build }}"
-    - name: Add the dynamic C2 build instance to known_hosts
+    - name: Add the dynamic EC2 build instance to known_hosts
       known_hosts:
         path: ~/.ssh/known_hosts
         name: "{{ public_ip_build | trim }}"
@@ -354,7 +354,7 @@
         ansible_user: ubuntu
         ansible_private_key_file: "{{ aws_ssh_private_key_file }}"
         groups: "{{ ec2_instance_env_prod }}"
-    - name: Add the dynamic C2 build instance to known_hosts
+    - name: Add the dynamic EC2 build instance to known_hosts
       known_hosts:
         path: ~/.ssh/known_hosts
         name: "{{ public_ip_prod | trim }}"
