@@ -59,7 +59,7 @@
     - never
     
 # 4 - Create EC2 Key Pair "aws_key_name" for Ansible Access and store it at "aws_ssh_private_key_file" by "create_key" tag 
-# or upload existing key to AWS by "key_management" tag
+# or upload existing public key to AWS by "upload_key" tag
 - import_playbook: playbooks/4_aws_key_management.yml
   tags:
     - key_management
