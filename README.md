@@ -50,26 +50,29 @@ git clone https://github.com/cypher000000/ansible-aws.git
 - Specify all your variables in 'host_vars/all.yml'
 2. Start playbook, using tags, TLDR:
 ``` bash
-ansible-playbook -i "localhost," --connection=local site.yml --tags "log,s3_setup,iam_setup,key_management,create_key,ec2_instances,build_server,prod_server"
+ansible-playbook -i "localhost," --connection=local site.yml --tags "log,msg,s3_setup,iam_setup,key_management,create_key,ec2_instances,build_server,prod_server"
 ```
 or you can select your tags:
 ``` bash
 ansible-playbook -i "localhost," --connection=local site.yml --tags "tag,tag,tag"
 ```
-- All tags:
+- All tags definition:
   - "log"
-    - 1
+    - Loging every step in log_file_path with timestamp.
   - "msg"
-    - 2
+    - Msging every step in jenkins output.
   - "free_tier_check"
-    - 3
+    - Checking AWS Free Tier usage for EC2, EBS, S3, Data Transfer, Public IPS; showing if you have any high usage.
   - "s3_setup"
-    - 4
+    - Creating (if need) S3 bucket "s3_bucket" and dir "artifacts" inside.
   - "iam_setup"
-    - 5
-  - "key_management,upload_key" or "key_management,create_key"
-    - 6
-  - "ec2_instances,build_server,prod_server"
-    - 7
+    - Creating (if need) AWS IAM policy "iam_policy_name" and role "iam_role_name" with access from EC2 to S3 bucket "s3_bucket".
+  - "key_management,upload_key" or "key_management,create_key" - you must specify one of this variations
+    - "create_key" tag: Creating EC2 Key Pair "aws_key_name" and save it locally in "aws_ssh_private_key_file".
+    - "upload_key" tag: Creating EC2 Key "aws_key_name" by existing public key "aws_ssh_private_key_file.pub".
+  - "ec2_instances,build_server,prod_server" - you must specify all 3 exactly like this
+    - "ec2_instances" tag: Creating (if need) and Configure 2 Dynamic Security Group (only 1 IP address and ports 22/80 for public) and Create and Configure 2 EC2 Instances (build-server and prod-server) with type "instance_type" and "image_id", role "iam_role_name" and VPC "vpc_id", then add both instances to in-memory dynamic Ansible inventory.
+    - "build_server" tag: Configuring Build Server by "build" Ansible role - install docker, build and run docker image to build maven artifact, upload WAR artifact to S3 "s3_bucket" with datetime tag.
+    - "prod_server" tag: Configuring Prod Server by "deploy" Ansible role - install docker, download WAR artifact from S3 "s3_bucket", build and run docker image with the built artifact from S3, then output application access URL.
 ## Credits for demo artifact app
 @tongueroo for https://github.com/tongueroo/demo-java
