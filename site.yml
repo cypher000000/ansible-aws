@@ -40,13 +40,13 @@
         - log
         - never
 
-# 1 - Check AWS Free Tier usage for EC2, EBS, S3, Data Transfer, Elastic IP, and KMS
+# 1 - Check AWS Free Tier usage for EC2, EBS, S3, Data Transfer, Public IP
 - import_playbook: playbooks/1_check_free_tier_aws.yml
   tags:
     - free_tier_check
     - never
 
-# 2 - Create S3 bucket "s3_bucket" and dirs "info_ec2" and "artifacts" inside 
+# 2 - Create S3 bucket "s3_bucket" and dir "artifacts" inside 
 - import_playbook: playbooks/2_setup_s3.yml
   tags:
     - s3_setup
