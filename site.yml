@@ -92,7 +92,7 @@
         - build_server
         - never
         
-# 6 - Configure Build Server by "build" Ansible role - install docker, build and run docker image to build maven artifact, upload WAR artifact to S3 "s3_bucket"
+# 6 - Configure Build Server by "build" Ansible role -- install docker, build and run docker image to build maven artifact, upload WAR artifact to S3 "s3_bucket"
 - import_playbook: playbooks/6_build_server.yml
   tags:
     - build_server
