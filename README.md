@@ -45,7 +45,8 @@ Everything triggered by tags, so use them
 
 1. Clone repo:
 ``` bash
-git clone https://github.com/cypher000000/ansible-aws.git 
+git clone https://github.com/cypher000000/ansible-aws.git
+cd ansible-aws
 ```
 - Specify all your variables in 'host_vars/all.yml'
 2. Start playbook, using tags, TLDR:
