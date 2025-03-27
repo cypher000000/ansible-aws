@@ -18,6 +18,7 @@ Create an Ansible playbook that check AWS free tier, create S3 bucket, setup iam
 8. Test if app reachable and then display application URL
 9. You can check the app by ip_prod:80/demo/Hello but only from ip where Ansible playbook was initiated. (You can add different cidr_ip inside ec2_security_group in playbooks/5_setup_ec2_instances.yml)
 10. Everything logged in file if you used "log" tag
+11. Dont forget to clean everything in AWS by hands, Ill write cleaning playbooks later
 
 ## Versions
 
