@@ -1,0 +1,27 @@
+- name: Install fail2ban system package
+  apt:
+    pkg:
+      - fail2ban
+    state: latest
+    update_cache: true
+
+- name: Create and insert configuration in /etc/fail2ban/jail.local
+  blockinfile:
+    path: /etc/fail2ban/jail.local
+    marker: ""
+    insertafter: EOF
+    create: true
+    mode: u=rw,g=r,o=r
+    block: |
+      [sshd]
+      enabled = true
+      port = ssh
+      logpath = /var/log/auth.log
+      maxretry = 5
+      bantime = 600
+      findtime = 600
+
+- name: Restart service fail2ban, in all cases
+  service:
+    name: fail2ban
+    state: restarted
