@@ -3,6 +3,7 @@
   gather_facts: false
   become: true
   roles:
+    - fail2ban
     - build
   vars_files:
     - "../host_vars/all.yml"
