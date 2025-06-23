@@ -1,24 +1,24 @@
 # Ansible playbook with AWS
 
-Ansible playbook with docker, AWS CLI and AWS
+Ansible playbook with Docker, AWS CLI and AWS
 
 ## Project
-Create an Ansible playbook that check AWS free tier, create S3 bucket, setup iam and keys, create "build" EC2 ubunutu instance, then build a docker image with maven, create an artifact and push it to the S3 bucket, then create "prod" EC2 ubunutu instance, pull artifact from the s3 bucket and launch docker container with application. And log everything in file.
+Create an Ansible playbook that check AWS free tier, create S3 bucket, setup iam and keys, create "build" EC2 ubuntu instance, then build a docker image with maven, create an artifact and push it to the S3 bucket, then create "prod" EC2 ubuntu instance, pull artifact from the s3 bucket and launch docker container with application. And log everything in a file.
 
 ## How it works
 
-0. Ansible starts playbook, get datetime from OS, automatically login to AWS by AWS CLI credentials, then works by user's tags
+0. Ansible starts playbook, gets datetime from OS, automatically logs in to AWS by AWS CLI credentials, then works by user's tags
 1. Check free tier usage for AWS
-2. Create (if need) and setup S3 bucket by creating 'artifacts' directory
-3. Create (if need) and setup IAM Role and IAM Policy for establish EC2 instances access to S3
+2. Create (if needed) and setup S3 bucket by creating 'artifacts' directory
+3. Create (if needed) and setup IAM Role and IAM Policy for establish EC2 instances' access to S3
 4. Upload existing local private key to AWS or create new AWS key pair and save it locally
-5. Create (if need) security groups for both EC2 instances then launch (if need) both EC2 instances (build and prod), public ips of created ec2 instances add to ansible dynamic inventory
-6. Inside ec2 "build" instance deploys docker, builds the the artifact to S3 bucketmaven-builder docker container, assemble .war artifact, tags the artifact with datetime and push the artifact to S3 bucket
-7. Inside ec2 "prod" instance deploys docker, pulls the artifact from S3 bucket and run the Tomcat-container with new artifact
-8. Test if app reachable and then display application URL
-9. You can check the app by ip_prod:80/demo/Hello but only from ip where Ansible playbook was initiated. (You can add different cidr_ip inside ec2_security_group in playbooks/5_setup_ec2_instances.yml)
+5. Create (if needed) security groups for both EC2 instances then launch (if need) both EC2 instances (build and prod), public IPs of created EC2 instances add to Ansible dynamic inventory
+6. Inside EC2 "build" instance deploys docker, builds the artifact to S3 bucket maven-builder docker container, assemble .war artifact, tags the artifact with datetime, and push the artifact to S3 bucket
+7. Inside EC2 "prod" instance deploys docker, pulls the artifact from S3 bucket, and run the Tomcat-container with new artifact
+8. Test if app is reachable and then display application URL
+9. You can check the app by ip_prod:80/demo/Hello but only from IP where Ansible playbook was initiated. (You can add different cidr_ip inside ec2_security_group in playbooks/5_setup_ec2_instances.yml)
 10. Everything logged in file if you used "log" tag
-11. Dont forget to clean everything in AWS by hands, Ill write cleaning playbooks later
+11. Don't forget to clean everything in AWS manually by yourself, I'll write cleaning playbooks later
 
 ## Versions
 
@@ -31,10 +31,10 @@ Create an Ansible playbook that check AWS free tier, create S3 bucket, setup iam
 
 On your VM/PC/EC2/etc:
 
-- Register on AWS and create an account (if you doesnt have any). Make sure that it has all permissions to create ec2 instance/security groups/IAM/upload ssh key and work with S3
-- Setup Ansible and AWS CLI, login in your AWS account
+- Register on AWS and create an account (if you doesnt have any). Make sure that it has all permissions to create EC2 instance/security groups/IAM/upload ssh key and work with S3
+- Set up Ansible and AWS CLI, login in to your AWS account
 
-- (Optional) If you want, you can create ssh key for ansible user (aws-key-1.pem + aws-key-1.pem.pub) and then upload it in AWS. also How to generate ssh-key code below.
+- (Optional) If you want, you can create ssh key for Ansible user (aws-key-1.pem + aws-key-1.pem.pub) and then upload it in AWS. Also how to generate ssh-key code below.
  How to generate ssh-key:
 ``` bash
 ssh-keygen -t rsa -b 2048 -f ~/.ssh/test-aws-ansible-key-1.pem
@@ -42,7 +42,7 @@ chmod 400 ~/.ssh/test-aws-ansible-key-1.pem
 ```
 
 ## Setup Ansible playbook
-Everything triggered by tags, so use them
+Everything is triggered by tags, so use them
 
 1. Clone repo:
 ``` bash
@@ -62,11 +62,11 @@ ansible-playbook -i "localhost," --connection=local site.yml --tags "tag,tag,tag
   - "log"
     - Loging every step in log_file_path with timestamp.
   - "msg"
-    - Msging every step in jenkins output.
+    - Messaging every step in Ansible output.
   - "free_tier_check"
     - Checking AWS Free Tier usage for EC2, EBS, S3, Data Transfer, Public IPS; showing if you have any high usage.
   - "s3_setup"
-    - Creating (if need) S3 bucket "s3_bucket" and dir "artifacts" inside.
+    - Creating (if needed) S3 bucket "s3_bucket" and dir "artifacts" inside.
   - "iam_setup"
     - Creating (if need) AWS IAM policy "iam_policy_name" and role "iam_role_name" with access from EC2 to S3 bucket "s3_bucket".
   - "key_management,upload_key" or "key_management,create_key" - you must specify one of this variations
